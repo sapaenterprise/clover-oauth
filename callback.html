@@ -1,0 +1,56 @@
+<div id="clover-callback-box" style="font-family: -apple-system, Segoe UI, Arial, sans-serif; max-width: 600px; margin: 40px auto; padding: 0 20px; color: #222; line-height: 1.6; text-align: center;">
+  <h2>Clover Authorization</h2>
+  <p id="clover-status">Checking authorization status&hellip;</p>
+  <p id="clover-manual" style="display:none; color:#777; font-size:14px; margin-top:30px;">
+    If you are not redirected automatically, check your browser's address bar
+    for a <code>code=</code> parameter and copy it from there.
+  </p>
+</div>
+
+<script>
+(function () {
+  // !!! REPLACE THIS with your real Clover App ID before using !!!
+  var CLOVER_APP_ID = "1GGKB1EAAJBWW";
+
+  // Sandbox authorize endpoint. Switch to https://www.clover.com/oauth/v2/authorize
+  // for production once you move off the sandbox test merchant.
+  var AUTHORIZE_BASE = "https://sandbox.dev.clover.com/oauth/v2/authorize";
+
+  var params = new URLSearchParams(window.location.search);
+  var code = params.get("code");
+  var merchantId = params.get("merchant_id");
+
+  var statusEl = document.getElementById("clover-status");
+  var manualEl = document.getElementById("clover-manual");
+
+  if (code) {
+    // We already have the authorization code -- this is the final step.
+    // Show it clearly so it can be copied for the token-exchange request.
+    statusEl.innerHTML =
+      "<strong>Authorization code received:</strong><br>" +
+      "<span style=\"font-family:monospace; word-break:break-all;\">" + code + "</span>" +
+      "<br><br>Merchant ID: <span style=\"font-family:monospace;\">" + (merchantId || "(not present)") + "</span>" +
+      "<br><br>Copy the code above for the token-exchange step.";
+  } else if (merchantId) {
+    // We have a merchant_id but no code yet -- this is Clover's first hop
+    // (launched from the Merchant Dashboard). Complete the OAuth handshake
+    // ourselves by redirecting to /oauth/v2/authorize.
+    statusEl.textContent = "Redirecting to Clover to complete authorization...";
+    manualEl.style.display = "block";
+
+    var redirectUri = window.location.origin + window.location.pathname;
+    var authorizeUrl = AUTHORIZE_BASE +
+      "?client_id=" + encodeURIComponent(CLOVER_APP_ID) +
+      "&redirect_uri=" + encodeURIComponent(redirectUri);
+
+    // Use window.top so this works even if the page is rendered inside
+    // GoDaddy's iframe wrapper -- we want the OUTER browser window to
+    // navigate, not just the iframe.
+    setTimeout(function () {
+      (window.top || window).location.href = authorizeUrl;
+    }, 800);
+  } else {
+    statusEl.textContent = "No authorization parameters found on this page.";
+  }
+})();
+</script>
